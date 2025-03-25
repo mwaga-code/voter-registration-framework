@@ -350,16 +350,22 @@ def import_main(args):
         args: Command line arguments
     """
     # Get the configuration file path
-    config_file = args.config if args.config else os.path.join(
-        os.path.dirname(__file__), 'configs', f'{args.state.lower()}_config.json'
-    )
+    if getattr(args, 'config', None):
+        config_file = args.config
+    elif getattr(args, 'config_dir', None):
+        config_file = os.path.join(args.config_dir, f'{args.state.lower()}_config.json')
+    else:
+        config_file = os.path.join(os.path.dirname(__file__), 'configs', f'{args.state.lower()}_config.json')
 
     # Load configuration
     with open(config_file, 'r') as f:
         config = json.load(f)
     
     # Get database path
-    db_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data', f'{args.state.lower()}_voters.db')
+    if getattr(args, 'db', None):
+        db_path = args.db
+    else:
+        db_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data', f'{args.state.lower()}_voters.db')
     
     # Create database if it doesn't exist
     create_database(db_path)
@@ -389,10 +395,10 @@ def import_main(args):
         file_type,
         delimiter,
         config.get('column_names', []),
-        args.limit
+        getattr(args, 'limit', None)
     )
     
-    if args.verbose:
+    if getattr(args, 'verbose', False):
         print(f"\nData Summary:")
         print(f"Total rows: {len(df)}")
         print(f"Columns: {', '.join(df.columns)}")
@@ -409,11 +415,11 @@ def import_main(args):
             df,
             config['column_mappings'],
             config.get('address_fields', {}),
-            args.force,
+            getattr(args, 'force', False),
             args.state  # Pass state code to import_data
         )
         
-        if args.verbose:
+        if getattr(args, 'verbose', False):
             # Get final table statistics
             cursor = conn.cursor()
             cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
@@ -434,16 +440,23 @@ def import_main(args):
     finally:
         conn.close()
 
-def main():
-    """Main function."""
-    parser = argparse.ArgumentParser()
-    parser.add_argument('state', help='Two-letter state code (e.g., WA, OR)')
-    parser.add_argument('file', help='Path to the voter data file')
-    parser.add_argument('--limit', type=int, help='Limit the number of rows to import')
-    parser.add_argument('--force', action='store_true', help='Force recreate the table')
-    parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
-    parser.add_argument('--config', help='Path to custom configuration file')
-    args = parser.parse_args()
+def main(args=None):
+    """Main function.
+    
+    Args:
+        args: Command line arguments (optional)
+    """
+    if args is None:
+        parser = argparse.ArgumentParser()
+        parser.add_argument('state', help='Two-letter state code (e.g., WA, OR)')
+        parser.add_argument('file', help='Path to the voter data file')
+        parser.add_argument('--limit', type=int, help='Limit the number of rows to import')
+        parser.add_argument('--force', action='store_true', help='Force recreate the table')
+        parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
+        parser.add_argument('--config', help='Path to custom configuration file')
+        parser.add_argument('--config_dir', help='Path to custom configuration directory')
+        parser.add_argument('--db', help='Path to the SQLite database file')
+        args = parser.parse_args()
 
     import_main(args)
 

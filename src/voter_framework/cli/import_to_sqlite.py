@@ -36,6 +36,29 @@ def get_table_name(state_code: str, file_name: str) -> str:
     date_suffix = datetime.now().strftime('%Y%m%d')
     return f'voters_{state_code.lower()}_{base_name}_{date_suffix}'
 
+def get_config_file_path(args):
+    """Get the configuration file path.
+    
+    Args:
+        args: Command line arguments containing state and optional config/config_dir
+        
+    Returns:
+        str: Path to the configuration file
+    """
+    # If --config is specified, use it (mainly for testing)
+    if getattr(args, 'config', None):
+        return args.config
+        
+    # Get the config directory
+    if getattr(args, 'config_dir', None):
+        config_dir = args.config_dir
+    else:
+        # Default to 'configs' directory in the project root
+        config_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'configs')
+    
+    # Construct config file path from state code
+    return os.path.join(config_dir, f'{args.state.lower()}_config.json')
+
 def load_state_config(state_code: str) -> Dict:
     """
     Load state configuration from JSON or YAML file.
@@ -204,11 +227,8 @@ def import_data(conn: sqlite3.Connection, table_name: str, df: pd.DataFrame, map
                 actual_col = next((df_col_lookup[col_lower] for col_lower in df_col_lookup 
                                 if col_lower == orig_col.lower()), None)
                 if actual_col:
-                    if schema_field == 'voter_id' and state_code:
-                        # Prefix voter_id with state code
-                        df_mapped[schema_field] = f"{state_code.upper()}-" + df_chunk[actual_col].astype(str)
-                    else:
-                        df_mapped[schema_field] = df_chunk[actual_col]
+                    # No need to prefix voter_id since each state has its own table
+                    df_mapped[schema_field] = df_chunk[actual_col]
         
         # Set state code from command line argument
         if state_code:
@@ -350,22 +370,25 @@ def import_main(args):
         args: Command line arguments
     """
     # Get the configuration file path
-    if getattr(args, 'config', None):
-        config_file = args.config
-    elif getattr(args, 'config_dir', None):
-        config_file = os.path.join(args.config_dir, f'{args.state.lower()}_config.json')
-    else:
-        config_file = os.path.join(os.path.dirname(__file__), 'configs', f'{args.state.lower()}_config.json')
+    config_file = get_config_file_path(args)
 
     # Load configuration
-    with open(config_file, 'r') as f:
-        config = json.load(f)
+    try:
+        with open(config_file, 'r') as f:
+            config = json.load(f)
+    except FileNotFoundError:
+        print(f"Error: Configuration file not found: {config_file}")
+        print(f"Please run 'onboard_state {args.state} <file>' first to create the configuration.")
+        sys.exit(1)
+    except json.JSONDecodeError:
+        print(f"Error: Invalid JSON in configuration file: {config_file}")
+        sys.exit(1)
     
-    # Get database path
+    # Get database path - use a single database for all states
     if getattr(args, 'db', None):
         db_path = args.db
     else:
-        db_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data', f'{args.state.lower()}_voters.db')
+        db_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data', 'voters.db')
     
     # Create database if it doesn't exist
     create_database(db_path)
@@ -453,8 +476,8 @@ def main(args=None):
         parser.add_argument('--limit', type=int, help='Limit the number of rows to import')
         parser.add_argument('--force', action='store_true', help='Force recreate the table')
         parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
-        parser.add_argument('--config', help='Path to custom configuration file')
-        parser.add_argument('--config_dir', help='Path to custom configuration directory')
+        parser.add_argument('--config', help='Path to custom configuration file (mainly for testing)')
+        parser.add_argument('--config-dir', help='Path to configuration directory (defaults to configs/ in project root)')
         parser.add_argument('--db', help='Path to the SQLite database file')
         args = parser.parse_args()
 

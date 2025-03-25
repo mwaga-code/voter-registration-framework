@@ -202,7 +202,11 @@ def import_data(conn: sqlite3.Connection, table_name: str, df: pd.DataFrame, map
                 actual_col = next((df_col_lookup[col_lower] for col_lower in df_col_lookup 
                                 if col_lower == orig_col.lower()), None)
                 if actual_col:
-                    df_mapped[schema_field] = df_chunk[actual_col]
+                    if schema_field == 'voter_id' and state_code:
+                        # Prefix voter_id with state code
+                        df_mapped[schema_field] = f"{state_code.upper()}-" + df_chunk[actual_col].astype(str)
+                    else:
+                        df_mapped[schema_field] = df_chunk[actual_col]
         
         # Set state code from command line argument
         if state_code:

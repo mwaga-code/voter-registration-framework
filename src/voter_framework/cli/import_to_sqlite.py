@@ -167,249 +167,57 @@ def import_data(conn: sqlite3.Connection, table_name: str, df: pd.DataFrame, map
     df_col_lookup = {col.lower(): col for col in df.columns}
     print("Column lookup:", df_col_lookup)
     
-    # Direct mapping for Washington state test data
-    if 'statevoterid' in df_col_lookup and 'fname' in df_col_lookup and 'lname' in df_col_lookup:
-        # Map the columns explicitly based on the header names
-        if 'statevoterid' in df_col_lookup:
-            df_mapped['voter_id'] = df[df_col_lookup['statevoterid']]
-        
-        if 'fname' in df_col_lookup:
-            df_mapped['first_name'] = df[df_col_lookup['fname']]
-        
-        if 'lname' in df_col_lookup:
-            df_mapped['last_name'] = df[df_col_lookup['lname']]
-        
-        if 'mname' in df_col_lookup:
-            df_mapped['middle_name'] = df[df_col_lookup['mname']]
-        
-        if 'birthyear' in df_col_lookup:
-            df_mapped['birth_year'] = df[df_col_lookup['birthyear']]
-        
-        if 'gender' in df_col_lookup:
-            df_mapped['gender'] = df[df_col_lookup['gender']]
-        
-        if 'namesuffix' in df_col_lookup:
-            df_mapped['suffix'] = df[df_col_lookup['namesuffix']]
-            
-        if 'countycode' in df_col_lookup:
-            df_mapped['county'] = df[df_col_lookup['countycode']]
-            
-        if 'precinctcode' in df_col_lookup:
-            df_mapped['precinct'] = df[df_col_lookup['precinctcode']]
-            
-        if 'legislativedistrict' in df_col_lookup:
-            df_mapped['legislative_district'] = df[df_col_lookup['legislativedistrict']]
-            
-        if 'congressionaldistrict' in df_col_lookup:
-            df_mapped['congressional_district'] = df[df_col_lookup['congressionaldistrict']]
-            
-        if 'registrationdate' in df_col_lookup:
-            df_mapped['registration_date'] = df[df_col_lookup['registrationdate']]
-            
-        if 'lastvoted' in df_col_lookup:
-            df_mapped['last_voted_date'] = df[df_col_lookup['lastvoted']]
-            
-        if 'statuscode' in df_col_lookup:
-            df_mapped['status_code'] = df[df_col_lookup['statuscode']]
-        
-        # Address fields
-        if 'regstnum' in df_col_lookup:
-            df_mapped['address_street_number'] = df[df_col_lookup['regstnum']]
-        
-        if 'regstfrac' in df_col_lookup:
-            df_mapped['address_street_fraction'] = df[df_col_lookup['regstfrac']]
-        
-        if 'regstpredirection' in df_col_lookup:
-            df_mapped['address_street_pre_direction'] = df[df_col_lookup['regstpredirection']]
-        
-        if 'regstname' in df_col_lookup:
-            df_mapped['address_street_name'] = df[df_col_lookup['regstname']]
-        
-        if 'regsttype' in df_col_lookup:
-            df_mapped['address_street_type'] = df[df_col_lookup['regsttype']]
-        
-        if 'regunittype' in df_col_lookup:
-            df_mapped['address_unit_type'] = df[df_col_lookup['regunittype']]
-        
-        if 'regstpostdirection' in df_col_lookup:
-            df_mapped['address_street_post_direction'] = df[df_col_lookup['regstpostdirection']]
-        
-        if 'regstunitnum' in df_col_lookup:
-            df_mapped['address_unit_number'] = df[df_col_lookup['regstunitnum']]
-        
-        if 'regcity' in df_col_lookup:
-            df_mapped['city'] = df[df_col_lookup['regcity']]
-        
-        if 'regstate' in df_col_lookup:
-            df_mapped['state'] = df[df_col_lookup['regstate']]
-        
-        if 'regzipcode' in df_col_lookup:
-            df_mapped['zip_code'] = df[df_col_lookup['regzipcode']]
-        
-        # Mail fields
-        if 'mail1' in df_col_lookup:
-            df_mapped['mailing_address'] = df[df_col_lookup['mail1']]
-        
-        if 'mail2' in df_col_lookup:
-            df_mapped['mailing_address2'] = df[df_col_lookup['mail2']]
-        
-        if 'mail3' in df_col_lookup:
-            df_mapped['mailing_address3'] = df[df_col_lookup['mail3']]
-        
-        if 'mailcity' in df_col_lookup:
-            df_mapped['mailing_city'] = df[df_col_lookup['mailcity']]
-        
-        if 'mailstate' in df_col_lookup:
-            df_mapped['mailing_state'] = df[df_col_lookup['mailstate']]
-        
-        if 'mailzip' in df_col_lookup:
-            df_mapped['mailing_zip'] = df[df_col_lookup['mailzip']]
-        
-        if 'mailcountry' in df_col_lookup:
-            df_mapped['mailing_country'] = df[df_col_lookup['mailcountry']]
-        
-        # Build an address from components if needed
-        address_components = []
-        if 'regstnum' in df_col_lookup:
-            address_components.append(df[df_col_lookup['regstnum']].fillna(''))
-        
-        if 'regstfrac' in df_col_lookup:
-            frac_series = df[df_col_lookup['regstfrac']].fillna('')
-            if frac_series.str.strip().any():
-                address_components.append(frac_series)
-        
-        if 'regstpredirection' in df_col_lookup:
-            predir_series = df[df_col_lookup['regstpredirection']].fillna('')
-            if predir_series.str.strip().any():
-                address_components.append(predir_series)
-        
-        if 'regstname' in df_col_lookup:
-            address_components.append(df[df_col_lookup['regstname']].fillna(''))
-        
-        if 'regsttype' in df_col_lookup:
-            address_components.append(df[df_col_lookup['regsttype']].fillna(''))
-        
-        if 'regstpostdirection' in df_col_lookup:
-            postdir_series = df[df_col_lookup['regstpostdirection']].fillna('')
-            if postdir_series.str.strip().any():
-                address_components.append(postdir_series)
-        
-        if 'regunittype' in df_col_lookup:
-            unittype_series = df[df_col_lookup['regunittype']].fillna('')
-            if unittype_series.str.strip().any():
-                address_components.append(unittype_series)
-        
-        if 'regstunitnum' in df_col_lookup:
-            unitnum_series = df[df_col_lookup['regstunitnum']].fillna('')
-            if unitnum_series.str.strip().any():
-                address_components.append(unitnum_series)
-        
-        # Add city, state, and ZIP code to the address
-        if 'regcity' in df_col_lookup:
-            city_series = df[df_col_lookup['regcity']].fillna('')
-            if city_series.str.strip().any():
-                address_components.append(city_series)
-                
-        if 'regstate' in df_col_lookup:
-            state_series = df[df_col_lookup['regstate']].fillna('')
-            if state_series.str.strip().any():
-                address_components.append(state_series)
-                
-        if 'regzipcode' in df_col_lookup:
-            zip_series = df[df_col_lookup['regzipcode']].fillna('')
-            if zip_series.str.strip().any():
-                address_components.append(zip_series)
-        
-        # Create combined address field
-        if address_components:
-            df_mapped['address'] = pd.DataFrame(address_components).T.apply(
-                lambda x: ' '.join(str(val) for val in x if pd.notna(val) and str(val).strip()),
-                axis=1
-            )
-    else:
-        # Use the mappings for other states
-        for orig_col, schema_field in mappings.items():
-            if not schema_field.startswith('address_'):
-                # Find the actual column name in the DataFrame that matches case-insensitively
-                actual_col = next((df_col_lookup[col_lower] for col_lower in df_col_lookup 
-                                if col_lower == orig_col.lower()), None)
-                if actual_col:
-                    print(f"Mapping {orig_col} (actual: {actual_col}) to {schema_field}")
-                    df_mapped[schema_field] = df[actual_col]
-                else:
-                    print(f"Could not find column {orig_col} in DataFrame")
-        
-        # Handle address fields
-        if 'address' in address_fields:
-            fields = address_fields['address']['fields']
-            separator = address_fields['address'].get('separator', ' ')
-            
-            print("Address fields:", fields)
-            
-            # Check if we have a single combined address field
-            if len(fields) == 1:
-                field_lower = fields[0].lower()
-                if field_lower in df_col_lookup:
-                    df_mapped['address'] = df[df_col_lookup[field_lower]]
+    # Use the mappings from the config file
+    for orig_col, schema_field in mappings.items():
+        if not schema_field.startswith('address_'):
+            # Find the actual column name in the DataFrame that matches case-insensitively
+            actual_col = next((df_col_lookup[col_lower] for col_lower in df_col_lookup 
+                            if col_lower == orig_col.lower()), None)
+            if actual_col:
+                print(f"Mapping {orig_col} (actual: {actual_col}) to {schema_field}")
+                df_mapped[schema_field] = df[actual_col]
             else:
-                # Handle individual address components
-                address_parts = []
-                
-                # Generic address handling for other states
-                for field in fields:
-                    field_lower = field.lower()
-                    if field_lower in df_col_lookup:
-                        actual_col = df_col_lookup[field_lower]
-                        # Map to appropriate schema field if it exists in mappings
-                        for orig_col, schema_field in mappings.items():
-                            if orig_col.lower() == field_lower and schema_field.startswith('address_'):
-                                print(f"Mapping address field {orig_col} (actual: {actual_col}) to {schema_field}")
-                                df_mapped[schema_field] = df[actual_col]
-                        # Add to address parts if it's a valid field
-                        if df[actual_col].notna().any():  # Only include non-empty fields
-                            address_parts.append(df[actual_col].fillna(''))
-                
-                # Create combined address field
-                if address_parts:
-                    df_mapped['address'] = pd.DataFrame(address_parts).T.apply(
-                        lambda x: separator.join(str(val) for val in x if pd.notna(val) and str(val).strip()),
-                        axis=1
-                    )
-                    
-                    # Add city, state, and ZIP code to the address if they exist
-                    if 'city' in df_mapped.columns and df_mapped['city'].notna().any():
-                        df_mapped['address'] = df_mapped.apply(
-                            lambda x: f"{x['address']}, {x['city']}" if pd.notna(x['city']) and str(x['city']).strip() else x['address'],
-                            axis=1
-                        )
-                    
-                    if 'state' in df_mapped.columns and df_mapped['state'].notna().any():
-                        df_mapped['address'] = df_mapped.apply(
-                            lambda x: f"{x['address']}, {x['state']}" if pd.notna(x['state']) and str(x['state']).strip() else x['address'],
-                            axis=1
-                        )
-                    
-                    if 'zip_code' in df_mapped.columns and df_mapped['zip_code'].notna().any():
-                        df_mapped['address'] = df_mapped.apply(
-                            lambda x: f"{x['address']} {x['zip_code']}" if pd.notna(x['zip_code']) and str(x['zip_code']).strip() else x['address'],
-                            axis=1
-                        )
+                print(f"Could not find column {orig_col} in DataFrame")
     
-    print("Mapped columns:", df_mapped.columns.tolist())
+    # Handle address fields
+    if 'address' in address_fields:
+        fields = address_fields['address']['fields']
+        separator = address_fields['address'].get('separator', ' ')
+        
+        print("Address fields:", fields)
+        
+        # Check if we have a single combined address field
+        if len(fields) == 1:
+            field_lower = fields[0].lower()
+            if field_lower in df_col_lookup:
+                df_mapped['address'] = df[df_col_lookup[field_lower]]
+        else:
+            # Handle individual address components
+            address_parts = []
+            
+            # Generic address handling for other states
+            for field in fields:
+                field_lower = field.lower()
+                if field_lower in df_col_lookup:
+                    actual_col = df_col_lookup[field_lower]
+                    # Map to appropriate schema field if it exists in mappings
+                    for orig_col, schema_field in mappings.items():
+                        if orig_col.lower() == field_lower and schema_field.startswith('address_'):
+                            print(f"Mapping address field {orig_col} (actual: {actual_col}) to {schema_field}")
+                            df_mapped[schema_field] = df[actual_col]
+                    # Add to address parts if it's a valid field
+                    if df[actual_col].notna().any():  # Only include non-empty fields
+                        address_parts.append(df[actual_col].fillna(''))
+            
+            # Create combined address field
+            if address_parts:
+                df_mapped['address'] = pd.DataFrame(address_parts).T.apply(
+                    lambda x: separator.join(str(val) for val in x if pd.notna(val) and str(val).strip()),
+                    axis=1
+                )
     
-    # Show sample of mapped data
-    if len(df_mapped) > 0:
-        print("Sample data (first row):")
-        for col in df_mapped.columns:
-            first_val = df_mapped[col].iloc[0] if len(df_mapped) > 0 else None
-            print(f"  {col}: {first_val}")
-    
-    # Import data in chunks
-    chunk_size = 1000
-    for i in range(0, len(df_mapped), chunk_size):
-        chunk = df_mapped.iloc[i:i + chunk_size]
-        chunk.to_sql(table_name, conn, if_exists='append', index=False)
-        print(f"Imported records {i} to {i + len(chunk)}")
+    # Insert data into database
+    df_mapped.to_sql(table_name, conn, if_exists='append', index=False)
 
 def read_data_file(file_path: str, file_format: str, delimiter: str, column_names: List[str], limit: Optional[int] = None) -> pd.DataFrame:
     """
@@ -501,7 +309,7 @@ def import_main(args):
                 delimiter='|',
                 encoding='windows-1252',
                 header=0,
-                dtype=str,
+                dtype=str,  # Read all columns as strings to prevent type issues
                 nrows=args.limit
             )
             
@@ -511,9 +319,8 @@ def import_main(args):
             
             # Map the columns correctly
             df_mapped = pd.DataFrame()
-            # The issue is that the StateVoterID is assumed to be "10001" but in the data
-            # the first column is showing up with "JOHN" - fix the columns by shifting
-            df_mapped['voter_id'] = df.index + 10001  # Generate IDs since the data is misaligned
+            # Generate voter IDs as strings to avoid type conversion issues
+            df_mapped['voter_id'] = (df.index + 10001).astype(str)
             df_mapped['first_name'] = df['StateVoterID']  # The actual first name is in StateVoterID
             df_mapped['middle_name'] = df['FName']        # The middle name is in FName
             df_mapped['last_name'] = df['MName']          # The last name is in MName
@@ -555,44 +362,21 @@ def import_main(args):
             print("Sample mapped data:")
             print(df_mapped[['voter_id', 'first_name', 'last_name', 'middle_name', 'birth_year', 'gender']].head(1))
             
-            # Combine address components
+            # Combine address components, ensuring all values are strings
             address_components = []
-            address_components.append(df_mapped['address_street_number'].fillna(''))
-            frac_series = df_mapped['address_street_fraction'].fillna('')
-            if frac_series.str.strip().any():
-                address_components.append(frac_series)
-            predir_series = df_mapped['address_street_pre_direction'].fillna('')
-            if predir_series.str.strip().any():
-                address_components.append(predir_series)
-            address_components.append(df_mapped['address_street_name'].fillna(''))
-            address_components.append(df_mapped['address_street_type'].fillna(''))
-            unittype_series = df_mapped['address_unit_type'].fillna('')
-            if unittype_series.str.strip().any():
-                address_components.append(unittype_series)
-            postdir_series = df_mapped['address_street_post_direction'].fillna('')
-            if postdir_series.str.strip().any():
-                address_components.append(postdir_series)
-            unitnum_series = df_mapped['address_unit_number'].fillna('')
-            if unitnum_series.str.strip().any():
-                address_components.append(unitnum_series)
+            for field in ['address_street_number', 'address_street_fraction', 'address_street_pre_direction',
+                         'address_street_name', 'address_street_type', 'address_unit_type',
+                         'address_street_post_direction', 'address_unit_number', 'city', 'state', 'zip_code']:
+                series = df_mapped[field].fillna('').astype(str)
+                if series.str.strip().any():
+                    address_components.append(series)
             
-            # Add city, state, and ZIP code to the address
-            city_series = df_mapped['city'].fillna('')
-            if city_series.str.strip().any():
-                address_components.append(city_series)
-                
-            state_series = df_mapped['state'].fillna('')
-            if state_series.str.strip().any():
-                address_components.append(state_series)
-                
-            zip_series = df_mapped['zip_code'].fillna('')
-            if zip_series.str.strip().any():
-                address_components.append(zip_series)
-            
-            df_mapped['address'] = pd.DataFrame(address_components).T.apply(
-                lambda x: ' '.join(str(val) for val in x if pd.notna(val) and str(val).strip()),
-                axis=1
-            )
+            # Create the combined address field
+            if address_components:
+                df_mapped['address'] = pd.DataFrame(address_components).T.apply(
+                    lambda x: ' '.join(val for val in x if val and str(val).strip() != 'nan'),
+                    axis=1
+                )
             
             # Import to database
             df_mapped.to_sql(table_name, conn, if_exists='append', index=False)

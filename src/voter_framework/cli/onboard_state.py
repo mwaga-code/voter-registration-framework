@@ -58,186 +58,95 @@ def analyze_columns(df: pd.DataFrame) -> Dict[str, str]:
     """
     # Common patterns in column names
     name_patterns = {
-        'first_name': ['first', 'given', 'fname', 'firstname', 'name_first'],
-        'last_name': ['last', 'surname', 'lname', 'lastname', 'name_last'],
-        'middle_name': ['middle', 'mname', 'middlename', 'name_middle'],
-        'birth_year': ['birth', 'dob', 'birthdate', 'date_of_birth', 'birthyear'],
+        'first_name': ['first', 'given', 'fname', 'firstname', 'name_first', 'fname'],
+        'last_name': ['last', 'surname', 'lname', 'lastname', 'name_last', 'lname'],
+        'middle_name': ['middle', 'mname', 'middlename', 'name_middle', 'mname'],
+        'birth_year': ['birth', 'dob', 'birthdate', 'date_of_birth', 'birthyear', 'birth_year'],
         'birthday': ['birthday', 'day_of_birth'],
-        'registration_date': ['registrationdate', 'regdate', 'registration_date'],
-        'city': ['city', 'town', 'regcity'],
-        'state': ['state', 'regstate'],
-        'zip_code': ['zip', 'postal', 'zipcode', 'regzipcode'],
+        'registration_date': ['registrationdate', 'regdate', 'registration_date', 'reg_date'],
+        'city': ['city', 'town', 'regcity', 'municipality'],
+        'state': ['state', 'regstate', 'province'],
+        'zip_code': ['zip', 'postal', 'zipcode', 'regzipcode', 'postal_code'],
         'gender': ['sex', 'gender'],
-        'party': ['party', 'political', 'affiliation'],
-        'precinct': ['precinct', 'district', 'precinctcode', 'precinct_id'],
-        'county': ['county', 'parish', 'countycode', 'county_name'],
-        'voter_id': ['voterid', 'voter_id', 'statevoterid', 'voter', 'votid', 'id'],
-        'legislative_district': ['legislativedistrict', 'legdistrict'],
-        'congressional_district': ['congressionaldistrict', 'congdistrict'],
-        'last_voted_date': ['lastvoted', 'last_voted', 'lastvoteddate'],
-        'status_code': ['statuscode', 'status', 'voter_status']
+        'party': ['party', 'political', 'affiliation', 'registration_party'],
+        'precinct': ['precinct', 'district', 'precinctcode', 'precinct_id', 'voting_district'],
+        'county': ['county', 'parish', 'countycode', 'county_name', 'jurisdiction'],
+        'voter_id': ['voterid', 'voter_id', 'statevoterid', 'voter', 'votid', 'id', 'registration_id'],
+        'legislative_district': ['legislativedistrict', 'legdistrict', 'leg_district', 'state_house'],
+        'congressional_district': ['congressionaldistrict', 'congdistrict', 'cong_district', 'us_house'],
+        'last_voted_date': ['lastvoted', 'last_voted', 'lastvoteddate', 'last_vote_date'],
+        'status_code': ['statuscode', 'status', 'voter_status', 'registration_status']
     }
     
     # Address field patterns
     address_patterns = {
-        'address_street_number': ['stnum', 'street_number', 'housenumber', 'regstnum', 'stnumber', 'address_number', 'streetno'],
-        'address_street_fraction': ['stfrac', 'fraction', 'regstfrac', 'address_frac'],
-        'address_street_pre_direction': ['stpredir', 'predirection', 'regstpredirection', 'address_dir_pre', 'streetdir'],
-        'address_street_name': ['stname', 'street_name', 'regstname', 'address_street', 'streetname'],
-        'address_street_type': ['sttype', 'street_type', 'regsttype', 'address_suffix', 'streettype'],
-        'address_unit_type': ['unittype', 'regunittype', 'address_unit_type'],
-        'address_street_post_direction': ['stpostdir', 'postdirection', 'regstpostdirection', 'address_dir_post'],
-        'address_unit_number': ['unitnum', 'regstunitnum', 'address_unit', 'unitno']
+        'address_street_number': ['stnum', 'street_number', 'housenumber', 'regstnum', 'stnumber', 'address_number', 'streetno', 'house_number'],
+        'address_street_fraction': ['stfrac', 'fraction', 'regstfrac', 'address_frac', 'street_fraction'],
+        'address_street_pre_direction': ['stpredir', 'predirection', 'regstpredirection', 'address_dir_pre', 'streetdir', 'street_direction'],
+        'address_street_name': ['stname', 'street_name', 'regstname', 'address_street', 'streetname', 'street'],
+        'address_street_type': ['sttype', 'street_type', 'regsttype', 'address_suffix', 'streettype', 'street_suffix'],
+        'address_unit_type': ['unittype', 'regunittype', 'address_unit_type', 'apartment_type'],
+        'address_street_post_direction': ['stpostdir', 'postdirection', 'regstpostdirection', 'address_dir_post', 'street_post_dir'],
+        'address_unit_number': ['unitnum', 'regstunitnum', 'address_unit', 'unitno', 'apartment_number']
     }
     
     # Mailing address patterns
     mailing_patterns = {
-        'mailing_address': ['mail1', 'mailingaddress'],
-        'mailing_address2': ['mail2', 'mailingaddress2'],
-        'mailing_address3': ['mail3', 'mailingaddress3'],
-        'mailing_city': ['mailcity'],
-        'mailing_state': ['mailstate'],
-        'mailing_zip': ['mailzip'],
-        'mailing_country': ['mailcountry']
-    }
-    
-    # State-specific mappings
-    state_mappings = {
-        'WA': {
-            'FName': 'first_name',
-            'LName': 'last_name',
-            'MName': 'middle_name',
-            'StateVoterID': 'voter_id',
-            'Birthyear': 'birth_year',
-            'Gender': 'gender',
-            'PrecinctCode': 'precinct',
-            'CountyCode': 'county',
-            'LegislativeDistrict': 'legislative_district',
-            'CongressionalDistrict': 'congressional_district',
-            'LastVoted': 'last_voted_date',
-            'StatusCode': 'status_code',
-            'RegStNum': 'address_street_number',
-            'RegStFrac': 'address_street_fraction',
-            'RegStPreDirection': 'address_street_pre_direction',
-            'RegStName': 'address_street_name',
-            'RegStType': 'address_street_type',
-            'RegUnitType': 'address_unit_type',
-            'RegStPostDirection': 'address_street_post_direction',
-            'RegStUnitNum': 'address_unit_number',
-            'Mail1': 'mailing_address',
-            'Mail2': 'mailing_address2',
-            'Mail3': 'mailing_address3',
-            'MailCity': 'mailing_city',
-            'MailState': 'mailing_state',
-            'MailZip': 'mailing_zip',
-            'MailCountry': 'mailing_country',
-            'Registrationdate': 'registration_date',
-            'RegCity': 'city',
-            'RegState': 'state',
-            'RegZipCode': 'zip_code'
-        },
-        'OR': {
-            'VoterId': 'voter_id',
-            'FirstName': 'first_name',
-            'LastName': 'last_name',
-            'MiddleName': 'middle_name',
-            'BirthYear': 'birth_year',
-            'RegDate': 'registration_date',
-            'City': 'city',
-            'State': 'state',
-            'Zip': 'zip_code',
-            'Sex': 'gender',
-            'Precinct': 'precinct',
-            'County': 'county',
-            'LegDistrict': 'legislative_district',
-            'CongDistrict': 'congressional_district',
-            'LastVotedDate': 'last_voted_date',
-            'Status': 'status_code',
-            'StreetNo': 'address_street_number',
-            'StreetDir': 'address_street_pre_direction',
-            'StreetName': 'address_street_name',
-            'StreetType': 'address_street_type',
-            'UnitType': 'address_unit_type',
-            'UnitNo': 'address_unit_number',
-            'MailAddress': 'mailing_address',
-            'MailCity': 'mailing_city',
-            'MailState': 'mailing_state',
-            'MailZip': 'mailing_zip'
-        },
-        'CA': {
-            'ID': 'voter_id',
-            'NAME_FIRST': 'first_name',
-            'NAME_LAST': 'last_name',
-            'NAME_MIDDLE': 'middle_name',
-            'NAME_SUFFIX': 'suffix',
-            'BIRTH_YEAR': 'birth_year',
-            'GENDER': 'gender',
-            'ADDRESS_FULL': 'address',
-            'CITY': 'city',
-            'STATE': 'state',
-            'ZIP': 'zip_code',
-            'COUNTY_NAME': 'county',
-            'PRECINCT_ID': 'precinct',
-            'ASSEMBLY_DISTRICT': 'legislative_district',
-            'CONGRESS_DISTRICT': 'congressional_district',
-            'LAST_VOTED_DATE': 'last_voted_date',
-            'VOTER_STATUS': 'status_code',
-            'MAILING_ADDRESS': 'mailing_address',
-            'MAILING_CITY': 'mailing_city',
-            'MAILING_STATE': 'mailing_state',
-            'MAILING_ZIP': 'mailing_zip',
-            'REGISTRATION_DATE': 'registration_date'
-        }
+        'mailing_address': ['mail1', 'mailingaddress', 'mail_address', 'mail_addr'],
+        'mailing_address2': ['mail2', 'mailingaddress2', 'mail_address2', 'mail_addr2'],
+        'mailing_address3': ['mail3', 'mailingaddress3', 'mail_address3', 'mail_addr3'],
+        'mailing_city': ['mailcity', 'mail_city'],
+        'mailing_state': ['mailstate', 'mail_state'],
+        'mailing_zip': ['mailzip', 'mail_zip', 'mailing_postal_code'],
+        'mailing_country': ['mailcountry', 'mail_country']
     }
     
     mappings = {}
     
-    # First try state-specific mappings
-    for state, state_map in state_mappings.items():
-        # Check if this is the right state format by looking for key columns
-        key_columns = {
-            'WA': ['FName', 'LName', 'StateVoterID'],
-            'OR': ['FirstName', 'LastName', 'VoterId'],
-            'CA': ['NAME_FIRST', 'NAME_LAST', 'ID']
-        }
-        # Create case-insensitive lookup for DataFrame columns
-        df_col_lookup = {col.lower(): col for col in df.columns}
-        # Check if all key columns exist (case-insensitive)
-        if all(any(key.lower() == col_lower for col_lower in df_col_lookup) for key in key_columns[state]):
-            # This is the right state format, use its mappings
-            # Create case-sensitive mappings using the actual column names from the DataFrame
-            case_sensitive_mappings = {}
-            for orig_col, schema_field in state_map.items():
-                # Find the actual column name in the DataFrame that matches case-insensitively
-                actual_col = next((df_col_lookup[col_lower] for col_lower in df_col_lookup 
-                                 if col_lower == orig_col.lower()), None)
-                if actual_col:
-                    case_sensitive_mappings[actual_col] = schema_field
-            mappings.update(case_sensitive_mappings)
-            return mappings
-    
-    # If no state-specific format matched, use pattern matching
     # Create case-insensitive lookup for DataFrame columns
     df_col_lookup = {col.lower(): col for col in df.columns}
     
-    # First map non-address fields
+    # First map non-address fields with higher priority
     for schema_field, patterns in name_patterns.items():
         for col_lower, actual_col in df_col_lookup.items():
-            if any(pattern in col_lower for pattern in patterns):
+            # Check for exact matches first
+            if any(pattern == col_lower for pattern in patterns):
                 mappings[actual_col] = schema_field
                 break
+            # Then check for partial matches
+            elif any(pattern in col_lower for pattern in patterns):
+                # Skip if this column is already mapped
+                if actual_col not in mappings:
+                    mappings[actual_col] = schema_field
+                    break
     
     # Then handle address fields
     for schema_field, patterns in address_patterns.items():
         for col_lower, actual_col in df_col_lookup.items():
-            if any(pattern in col_lower for pattern in patterns):
+            # Skip if this column is already mapped
+            if actual_col in mappings:
+                continue
+            # Check for exact matches first
+            if any(pattern == col_lower for pattern in patterns):
+                mappings[actual_col] = schema_field
+                break
+            # Then check for partial matches
+            elif any(pattern in col_lower for pattern in patterns):
                 mappings[actual_col] = schema_field
                 break
     
     # Finally handle mailing address fields
     for schema_field, patterns in mailing_patterns.items():
         for col_lower, actual_col in df_col_lookup.items():
-            if any(pattern in col_lower for pattern in patterns):
+            # Skip if this column is already mapped
+            if actual_col in mappings:
+                continue
+            # Check for exact matches first
+            if any(pattern == col_lower for pattern in patterns):
+                mappings[actual_col] = schema_field
+                break
+            # Then check for partial matches
+            elif any(pattern in col_lower for pattern in patterns):
                 mappings[actual_col] = schema_field
                 break
     

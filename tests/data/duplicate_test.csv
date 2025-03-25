@@ -1,0 +1,4 @@
+voter_id,first_name,last_name,address,city,state,zip_code
+12345,John,Smith,123 Main St,Seattle,WA,98101
+12345,Jane,Smith,456 Oak Ave,Seattle,WA,98102
+67890,Mary,Jones,789 Pine St,Seattle,WA,98103 

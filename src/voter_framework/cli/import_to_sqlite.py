@@ -169,20 +169,22 @@ def import_data(conn: sqlite3.Connection, table_name: str, df: pd.DataFrame, map
     print("DataFrame columns:", df.columns.tolist())
     print("Mappings:", mappings)
     
-    # Check for duplicate voter IDs
+    # Check for duplicate voter IDs in the input data
     voter_id_col = next((col for col, schema in mappings.items() if schema == 'voter_id'), None)
     if voter_id_col:
         duplicates = df[df[voter_id_col].duplicated(keep=False)]
         if not duplicates.empty:
-            print(f"\nWarning: Found {len(duplicates)} duplicate voter IDs")
+            print(f"\nERROR: Found {len(duplicates)} duplicate voter IDs in the input data")
+            print("This indicates a data integrity issue in the source file.")
             print("Sample duplicates:")
             print(duplicates[voter_id_col].head())
-            print("\nKeeping only the first occurrence of each voter ID")
-            df = df.drop_duplicates(subset=[voter_id_col], keep='first')
+            print("\nPlease fix the source data before proceeding.")
+            sys.exit(1)
     
     total_rows = len(df)
     chunk_size = 10000  # Process 10k records at a time
     processed_rows = 0
+    unique_violations = []
     
     # Process data in chunks
     for chunk_start in range(0, total_rows, chunk_size):
@@ -246,15 +248,51 @@ def import_data(conn: sqlite3.Connection, table_name: str, df: pd.DataFrame, map
                         axis=1
                     )
         
-        # Insert chunk into database
-        df_mapped.to_sql(table_name, conn, if_exists='append', index=False)
-        
-        # Update progress
-        processed_rows += len(df_chunk)
-        progress_pct = (processed_rows / total_rows) * 100
-        print(f"\rImported {processed_rows:,} records out of {total_rows:,} ({progress_pct:.1f}%)", end='', flush=True)
+        try:
+            # Insert chunk into database
+            df_mapped.to_sql(table_name, conn, if_exists='append', index=False)
+            
+            # Update progress
+            processed_rows += len(df_chunk)
+            progress_pct = (processed_rows / total_rows) * 100
+            print(f"\rImported {processed_rows:,} records out of {total_rows:,} ({progress_pct:.1f}%)", end='', flush=True)
+            
+        except sqlite3.IntegrityError as e:
+            if "UNIQUE constraint failed" in str(e):
+                # Extract the voter_id from the error message
+                error_msg = str(e)
+                if "voter_id" in error_msg:
+                    # Get the problematic voter_id from the current chunk
+                    cursor = conn.cursor()
+                    cursor.execute(f"SELECT voter_id FROM {table_name}")
+                    existing_ids = set(row[0] for row in cursor.fetchall())
+                    
+                    # Find which records in the current chunk have duplicate IDs
+                    for _, row in df_mapped.iterrows():
+                        if row['voter_id'] in existing_ids:
+                            unique_violations.append({
+                                'voter_id': row['voter_id'],
+                                'first_name': row.get('first_name', 'N/A'),
+                                'last_name': row.get('last_name', 'N/A'),
+                                'state': row.get('state', 'N/A')
+                            })
+            else:
+                raise  # Re-raise if it's not a UNIQUE constraint error
     
     print()  # New line after progress reporting
+    
+    # Report any unique constraint violations
+    if unique_violations:
+        print("\nERROR: Found UNIQUE constraint violations during import")
+        print(f"Total violations: {len(unique_violations)}")
+        print("\nSample violations (up to 5):")
+        for violation in unique_violations[:5]:
+            print(f"Voter ID: {violation['voter_id']}")
+            print(f"Name: {violation['first_name']} {violation['last_name']}")
+            print(f"State: {violation['state']}")
+            print("---")
+        print("\nThis indicates a data integrity issue. Please check the source data for duplicate voter IDs.")
+        sys.exit(1)
 
 def read_data_file(file_path: str, file_format: str, delimiter: str, column_names: List[str], limit: Optional[int] = None) -> pd.DataFrame:
     """
@@ -311,8 +349,14 @@ def import_main(args):
     Args:
         args: Command line arguments
     """
-    # Load state configuration
-    config = load_state_config(args.state)
+    # Get the configuration file path
+    config_file = args.config if args.config else os.path.join(
+        os.path.dirname(__file__), 'configs', f'{args.state.lower()}_config.json'
+    )
+
+    # Load configuration
+    with open(config_file, 'r') as f:
+        config = json.load(f)
     
     # Get database path
     db_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data', f'{args.state.lower()}_voters.db')
@@ -390,20 +434,17 @@ def import_main(args):
     finally:
         conn.close()
 
-def main(args=None):
-    """Main entry point.
-    
-    Args:
-        args: Command line arguments (optional)
-    """
-    parser = argparse.ArgumentParser(description='Import voter registration data into SQLite database')
-    parser.add_argument('state', help='Two-letter state code')
-    parser.add_argument('file', help='Path to voter data file')
-    parser.add_argument('--limit', type=int, help='Limit number of rows to import (for testing)')
-    parser.add_argument('--force', action='store_true', help='Force recreation of tables')
-    parser.add_argument('--verbose', action='store_true', help='Show detailed import progress and statistics')
-    
-    args = parser.parse_args(args)
+def main():
+    """Main function."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('state', help='Two-letter state code (e.g., WA, OR)')
+    parser.add_argument('file', help='Path to the voter data file')
+    parser.add_argument('--limit', type=int, help='Limit the number of rows to import')
+    parser.add_argument('--force', action='store_true', help='Force recreate the table')
+    parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
+    parser.add_argument('--config', help='Path to custom configuration file')
+    args = parser.parse_args()
+
     import_main(args)
 
 if __name__ == '__main__':

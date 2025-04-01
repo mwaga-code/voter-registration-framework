@@ -171,6 +171,15 @@ def create_table(conn: sqlite3.Connection, table_name: str, force: bool = False)
     """
     print(f"Creating table with SQL: {sql}")
     conn.execute(sql)
+
+    # Create index for address-based queries
+    index_sql = f"""
+    CREATE INDEX IF NOT EXISTS idx_{table_name}_address
+    ON {table_name}(address, city, zip_code)
+    """
+    print(f"Creating index with SQL: {index_sql}")
+    conn.execute(index_sql)
+
     conn.commit()
 
 def import_data(conn: sqlite3.Connection, table_name: str, df: pd.DataFrame, mappings: Dict[str, str], address_fields: Dict[str, Any], force: bool = False, state_code: str = None) -> None:
@@ -484,4 +493,4 @@ def main(args=None):
     import_main(args)
 
 if __name__ == '__main__':
-    main() 
+    main()
